@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kb-edis-config
+data:
+  edis_ds_host: http://edis-catalog
+  edis_ca_host: http://edis-catalog
+  edis_ocsp_host: http://edis-catalog
+  postgres_user: 'postgres'
+  postgres_password: 'postgres'
+  elastic_host: http://edis-elasticsearch:9200
+  elastic_hosts: 
+    -http://edis-elasticsearch:9200
+  elastic_discovery_type: single-node
+  elastic_username: elastic
+  elastic_password: changeme
+  elastic_security: 'true'
+  zookeeper_client_port: '32181'
+  kafka_broker_id: '1'
+  kafka_zookeeper_connect: edis-kafka:32181
+  kafka_advertised_listeners: PLAINTEXT://edis-kafka:29092
+  kafka_listener_protocol_map: PLAINTEXT:PLAINTEXT
+  kafka_inter_broker_listener_name: PLAINTEXT
+  kafka_offsets_topic_replication_factor: '1'
+  application.yml: |
+    spring:
+      profiles: test
+      elasticsearch:
+        rest:
+          uris: edis-elasticsearch:9200
+          username: elastic
+          password: changeme
+      include:
+        - deploy
+    server:
+      port: 8444
+      ssl:
+        enabled: true
+        client-auth: need
+        key-store: /opt/certificates/openssl/server/localhost.pfx
+        key-store-password: password
+        key-store-type: PKCS12
+        trust-store: /opt/certificates/openssl/server/trust.jks
+        trust-store-password: password
+        trust-store-type: JKS

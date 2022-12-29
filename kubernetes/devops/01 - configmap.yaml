@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kb-edis-config
+data:
+  ELASTIC_VERSION: 7.8.0
+  edis_ds_host: http://signback
+  edis_ca_host: http://ca
+  edis_ocsp_host: http://ocsp
+  postgres_user: 'postgres'
+  postgres_password: 'postgres'
+  elastic_host: edis-elasticsearch
+  elastic_port: '9200'
+  elastic_hosts: '["http://edis-elasticsearch:9200"]'
+  elastic_discovery_type: single-node
+  elastic_username: elastic
+  elastic_password: changeme
+  elastic_security: 'true'
+  logstash_monitoring_elasticsearch_hosts: http://edis-elasticsearch:9200
+  logstash_monitoring_enabled: 'true'
+  alertmanager_yml: '/etc/alertmanager/alertmanager.yml'
+  zookeeper_client_port: '2181'
+  kafka_broker_id: '1'
+  kafka_zookeeper_connect: edis-zookeeper:2181
+  kafka_advertised_listeners: PLAINTEXT://edis-kafka:9092
+  kafka_listener_protocol_map: PLAINTEXT:PLAINTEXT
+  kafka_inter_broker_listener_name: PLAINTEXT
+  kafka_offsets_topic_replication_factor: '1'
+  kafka_allow_plaintext_listener: 'yes'
+  zookeeper_allow_anonymous_login: 'yes'
+  prometheus_yml_location: /etc/prometheus/prometheus.yaml
+  alert_manager_yml_location: /etc/alertmanager/config.yml
+  grafana_security_admin_password: admin
+  grafana_users_allow_sign_up: 'false'
+  grafana_log_mode: console file
+  grafana_server_domain: edis-grafana
+  SPRING_PROFILES_ACTIVE: dev  
+  dev-config:
+    '{
+        "info.component":"EDIS Configuration Server",
+        "spring.application.name":" configserver",
+        "spring.config.activate.on-profile":"dev",
+        "config-server.default.profile":"dev",
+        "config-server.default.label":"latest",
+        "spring.profiles.include":"jdbc",
+        "spring.datasource.url":"jdbc:postgresql://192.168.1.129:5432/postgres",
+        "spring.datasource.driver-class-name":"org.postgresql.Driver",
+        "spring.datasource.username":"postgres",
+        "spring.datasource.password":"postgres",
+        "spring.datasource.platform":"postgres",
+        "spring.jpa.hibernate.naming.physical-strategy":"org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl",
+        "spring.jmx.default_domain":"cloud.config.server",
+        "spring.cloud.config.profile":"jdbc",
+        "spring.cloud.config.server.bootstrap":"false",
+        "spring.cloud.config.server.default-profile":"prod",
+        "spring.cloud.config.server.default-label":"latest",
+        "spring.cloud.config.server.jdbc.order":"0",
+        "spring.cloud.config.server.jdbc.enabled":"true",
+        "spring.cloud.zookeeper.connect-string":"localhost:2181",
+        "server.port":"8888",
+        "management.endpoints.web.base-path":"/admin"
+      }'
+  dev-ocsp:
+    '{
+      "spring.application.name":"ocsp",
+      "spring.config.import":"optional:configserver:http://config-server:8888",
+      "spring.cloud.config.enabled":"true",
+      "spring.cloud.config.label":"latest"
+    }'
+  dev-ca:
+    '{
+      "spring.application.name":"ca",
+      "spring.config.import":"optional:configserver:http://config-server:8888",
+      "spring.cloud.config.enabled":"true",
+      "spring.cloud.config.label":"latest"
+    }'
+  dev-visadoqr:
+    '{
+      "spring.application.name":"visadoqr",
+      "spring.config.import":"optional:configserver:http://config-server:8888",
+      "spring.cloud.config.enabled":"true",
+      "spring.cloud.config.label":"latest"
+    }'
+  dev-sign-back:
+    '{
+      "spring.application.name":"sign-back",
+      "spring.config.import":"optional:configserver:http://config-server:8888",
+      "spring.cloud.config.enabled":"true",
+      "spring.cloud.config.label":"latest"
+    }'
+  dev-api-gateway:
+    '{
+      "spring.application.name":"api-gateway",
+      "spring.config.import":"optional:configserver:http://config-server:8888",
+      "spring.cloud.config.enabled":"true",
+      "spring.cloud.config.label":"latest"
+    }'
+  dev-event-listener:
+    '{
+      "spring.application.name":"event-listener",
+      "spring.config.import":"optional:configserver:http://config-server:8888",
+      "spring.cloud.config.enabled":"true",
+      "spring.cloud.config.label":"latest"
+    }'
+      

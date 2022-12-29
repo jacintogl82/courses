@@ -1,0 +1,291 @@
+##################################################################################################
+# This file defines the services, service accounts, and deployments for the Edis system.
+#
+# To apply all 4 Edis services, their corresponding service accounts, and deployments:
+#
+#   kubectl apply -f '04 - deployment.yaml'
+#
+##################################################################################################
+
+##################################################################################################
+# OCSP service
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: ocsp
+  labels:
+    app: ocsp
+    service: ocsp
+spec:
+  ports:
+  - port: 8060
+    name: http
+  selector:
+    app: ocsp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edis-ocsp
+  labels:
+    account: ocsp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ocsp-v1
+  labels:
+    app: ocsp
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ocsp
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: ocsp
+        version: v1
+    spec:
+      serviceAccountName: edis-ocsp
+      containers:
+      - name: ocsp
+        image: local-edisserver:8443/edis-ocsp:0.0.1-SNAPSHOT
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8060
+        volumeMounts:
+        - name: work-dir
+          mountPath: /work/environment/edis-ca/
+        - name: logs-dir
+          mountPath: /opt/logs
+        securityContext:
+          runAsUser: 1000
+      volumes:
+      - name: work-dir
+        hostPath:
+          # directory location on host
+          path: /work/environment/edis-ca/
+          # this field is optional
+          type: DirectoryOrCreate
+      - name: logs-dir
+        hostPath:
+          # directory location on host
+          path: /opt/logs/
+          # this field is optional
+          type: DirectoryOrCreate
+---
+##################################################################################################
+# CA service
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: ca
+  labels:
+    app: ca
+    service: ca
+spec:
+  ports:
+  - port: 8070
+    name: http
+  selector:
+    app: ca
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edis-ca
+  labels:
+    account: ca
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ca-v1
+  labels:
+    app: ca
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ca
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: ca
+        version: v1
+    spec:
+      serviceAccountName: edis-ca
+      containers:
+      - name: ca
+        image: local-edisserver:8443/edis-ca:0.0.1-SNAPSHOT
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8070
+        volumeMounts:
+        - name: work-dir
+          mountPath: /work/environment/edis-ca/
+        - name: logs-dir
+          mountPath: /opt/logs
+        securityContext:
+          runAsUser: 1000
+      volumes:
+      - name: work-dir
+        hostPath:
+          # directory location on host
+          path: /opt/kubernetes-data/
+          # this field is optional
+          type: DirectoryOrCreate
+      - name: logs-dir
+        hostPath:
+          # directory location on host
+          path: /opt/logs
+          # this field is optional
+          type: DirectoryOrCreate
+---
+##################################################################################################
+# VISADO QR service
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: visadoqr
+  labels:
+    app: visadoqr
+    service: visadoqr
+spec:
+  ports:
+  - port: 8090
+    name: http
+  selector:
+    app: visadoqr
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edis-visadoqr
+  labels:
+    account: visadoqr
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: visadoqr-v1
+  labels:
+    app: visadoqr
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: visadoqr
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: visadoqr
+        version: v1
+    spec:
+      serviceAccountName: edis-visadoqr
+      containers:
+      - env:
+        - name: edis_ds_host
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: edis_ds_host
+        - name: edis_ca_host
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: edis_ca_host
+        - name: edis_ocsp_host
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: edis_ocsp_host
+        name: visadoqr
+        image: local-edisserver:8443/edis-visadoqr:0.0.1-SNAPSHOT
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8090
+        volumeMounts:
+        - name: logs-dir
+          mountPath: /opt/logs
+        securityContext:
+          runAsUser: 1000
+      volumes:
+      - name: logs-dir
+        hostPath:
+          # directory location on host
+          path: /opt/logs
+          # this field is optional
+          type: DirectoryOrCreate
+---
+##################################################################################################
+# Productpage services
+##################################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: signback
+  labels:
+    app: signback
+    service: signback
+spec:
+  ports:
+  - port: 8080
+    name: http
+  selector:
+    app: signback
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edis-signback
+  labels:
+    account: signback
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: signback-v1
+  labels:
+    app: signback
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: signback
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: signback
+        version: v1
+    spec:
+      serviceAccountName: edis-signback
+      containers:
+      - name: signback
+        image: local-edisserver:8443/edis-sign-back:0.0.1-SNAPSHOT
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: logs-dir
+          mountPath: /opt/logs
+      volumes:
+      - name: logs-dir
+        hostPath:
+          # directory location on host
+          path: /opt/logs
+          # this field is optional
+          type: DirectoryOrCreate
+---

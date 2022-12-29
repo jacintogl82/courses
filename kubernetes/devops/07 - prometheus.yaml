@@ -1,0 +1,66 @@
+##################################################################################################
+# prometheus service
+##################################################################################################
+apiVersion: v1  
+kind: Service  
+metadata:  
+  name: edis-prometheus  
+  labels:  
+    app: edis-prometheus
+    service: prometheus 
+spec:  
+  type: LoadBalancer
+  selector:  
+    app: edis-prometheus
+  ports:
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090
+  clusterIP: 10.96.1.128
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edis-monitoring
+  labels:
+    account: monitoring
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edis-prometheus
+  labels:
+    app: edis-prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edis-prometheus
+  template:
+    metadata:
+      labels:
+        app: edis-prometheus
+    spec:
+      serviceAccountName: edis-monitoring
+      volumes:
+      - name: prometheus-dir
+        hostPath:
+          # directory location on host
+          path: ./prometheus-config
+          # this field is optional
+          type: DirectoryOrCreate
+      containers:
+      - env:
+        - name: --config.file
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: prometheus_yml_location
+        name: prometheus
+        image: prom/prometheus
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9090
+        volumeMounts:
+        - name: prometheus-dir
+          mountPath: /etc/prometheus/

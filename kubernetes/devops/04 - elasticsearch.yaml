@@ -1,0 +1,80 @@
+##################################################################################################
+# Elasticsearch service
+##################################################################################################
+apiVersion: v1  
+kind: Service  
+metadata:  
+  name: edis-elasticsearch  
+  labels:  
+    app: edis-logs-elastic
+    service: elasticsearch 
+spec:  
+  type: LoadBalancer
+  selector:  
+    app: edis-logs-elastic
+  ports:
+    - name: elasticport
+      protocol: TCP
+      port: 9200
+      targetPort: 9200
+    - name: elasticcomport
+      protocol: TCP
+      port: 9300
+      targetPort: 9300 
+  clusterIP: 10.96.1.122
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edis-logs-elastic-system
+  labels:
+    account: logs-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edis-logs-elastic
+  labels:
+    app: edis-logs-elastic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edis-logs-elastic
+  template:
+    metadata:
+      labels:
+        app: edis-logs-elastic
+    spec:
+      serviceAccountName: edis-logs-elastic-system
+      volumes:
+      - name: elastic-logs
+        hostPath:
+          path: /home/jacinto/logging/elasticsearch/logs
+          type: DirectoryOrCreate
+      containers:
+      - env:
+        - name: discovery.type
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: elastic_discovery_type
+        - name: ELASTIC_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: elastic_password
+        - name: xpack.security.enabled
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: elastic_security
+        name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.8.1        
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: elastic-logs
+          mountPath: /var/log/elasticsearch       
+        ports:
+        - containerPort: 9200
+---

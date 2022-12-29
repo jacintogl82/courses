@@ -1,0 +1,51 @@
+version: "3"
+ 
+services:
+  nexus:
+    image: sonatype/nexus3
+    restart: always
+    ports:
+      - "8081:8081"
+    networks:
+      - devops
+  jenkins:
+    image: jenkins/jenkins
+    restart: always
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    networks:
+      - devops
+    volumes:
+      - /home/jacinto/DevOps/jenkins:/var/jenkins_home
+    depends_on:
+      - nexus
+      - gitlab-ce
+    environment:
+      - NEXUS_PORT=8081
+  database:
+    image: postgres
+    restart: always
+    ports:
+      - "5433:5432"
+    networks:
+      - devops
+    environment:
+     - POSTGRES_USER=postgres
+     - POSTGRES_PASSWORD=postgres
+  gitlab-ce:
+    image: gitlab/gitlab-ce:latest
+    restart: always
+    ports:
+     - "8443:443"
+     - "8082:80"
+     - "8022:22"
+    networks:
+      - devops
+    volumes:
+      - /home/jacinto/DevOps/gitlab/logs:/var/log/gitlab:Z
+      - /home/jacinto/DevOps/gitlab/config:/etc/gitlab:Z
+      - /home/jacinto/DevOps/gitlab/data:/var/opt/gitlab:Z
+networks:
+  devops:
+    driver: bridge

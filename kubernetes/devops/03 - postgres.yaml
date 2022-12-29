@@ -1,0 +1,71 @@
+##################################################################################################
+# Postgres persistence
+##################################################################################################
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: db-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+---
+##################################################################################################
+# Postgres service
+##################################################################################################
+apiVersion: v1  
+kind: Service  
+metadata:  
+  name: edis-postgres  
+  labels:  
+    app: edis-db
+    service: postgres 
+spec:  
+  type: LoadBalancer
+  selector:  
+    app: edis-db
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+  clusterIP: 10.96.1.121
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edis-database
+  labels:
+    account: database
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edis-db
+  labels:
+    app: edis-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edis-db
+  template:
+    metadata:
+      labels:
+        app: edis-db
+    spec:
+      serviceAccountName: edis-database
+      containers:
+      - env:
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: postgres_user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: postgres_password
+        name: postgresdb
+        image: postgres
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432

@@ -1,0 +1,61 @@
+##################################################################################################
+# Zookeeper service
+##################################################################################################
+apiVersion: v1  
+kind: Service  
+metadata:  
+  name: edis-zookeeper  
+  labels:  
+    app: edis-events-zookeeper
+    service: zookeeper 
+spec:  
+  type: LoadBalancer
+  selector:  
+    app: edis-events-zookeeper
+  ports:
+    - protocol: TCP
+      port: 2181
+      targetPort: 2181
+  clusterIP: 10.96.1.125
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edis-events-zookeeper-system
+  labels:
+    account: events-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edis-events-zookeeper
+  labels:
+    app: edis-events-zookeeper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edis-events-zookeeper
+  template:
+    metadata:
+      labels:
+        app: edis-events-zookeeper
+    spec:
+      serviceAccountName: edis-events-zookeeper-system
+      containers:
+      - env:
+        - name: ZOOKEEPER_CLIENT_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: zookeeper_client_port
+        - name: ALLOW_ANONYMOUS_LOGIN
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: zookeeper_allow_anonymous_login
+        name: zookeeper
+        image: confluentinc/cp-zookeeper:7.3.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 2181

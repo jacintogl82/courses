@@ -1,0 +1,131 @@
+##################################################################################################
+# Logstash persistence
+##################################################################################################
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: logstash-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: logstash-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: logstash-storage
+  local:
+    path: /home/jacinto/logging/logstash/
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - minikube
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: edis-logs-logstash-claim
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: logstash-storage
+  resources:
+    requests:
+      storage: 10Gi
+---
+##################################################################################################
+# Logstash service
+##################################################################################################
+apiVersion: v1  
+kind: Service  
+metadata:  
+  name: edis-logstash  
+  labels:  
+    app: edis-logs-logstash
+    service: logstash 
+spec:  
+  type: LoadBalancer
+  selector:  
+    app: edis-logs-logstash
+  ports:
+    - name: logstashport
+      protocol: TCP
+      port: 5000
+      targetPort: 5000
+    - name: logstashudpport
+      protocol: UDP
+      port: 5000
+      targetPort: 5000 
+    - name: logstashingressport
+      protocol: TCP
+      port: 9600
+      targetPort: 9600  
+  clusterIP: 10.96.1.123
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edis-logs-logstash-system
+  labels:
+    account: logs-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edis-logs-logstash
+  labels:
+    app: edis-logs-logstash
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edis-logs-logstash
+  template:
+    metadata:
+      labels:
+        app: edis-logs-logstash
+    spec:
+      serviceAccountName: edis-logs-logstash-system
+      volumes:
+      - name: logstash-persistent-storage
+        persistentVolumeClaim:
+          claimName: edis-logs-logstash-claim
+      containers:
+      - env:
+        - name: xpack.monitoring.enabled
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: logstash_monitoring_enabled
+        - name: xpack.monitoring.elasticsearch.hosts
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: logstash_monitoring_elasticsearch_hosts
+        - name: xpack.monitoring.elasticsearch.username
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: elastic_username
+        - name: xpack.monitoring.elasticsearch.password
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: elastic_password      
+        name: logstash
+        image: docker.elastic.co/logstash/logstash:7.8.1        
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: logstash-persistent-storage
+          mountPath: /usr/share/logstash/
+        ports:
+        - containerPort: 9200

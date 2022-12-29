@@ -1,0 +1,66 @@
+##################################################################################################
+# alertmanager service
+##################################################################################################
+apiVersion: v1  
+kind: Service  
+metadata:  
+  name: edis-alertmanager  
+  labels:  
+    app: edis-alertmanager
+    service: alertmanager 
+spec:  
+  type: LoadBalancer
+  selector:  
+    app: edis-alertmanager
+  ports:
+    - protocol: TCP
+      port: 9093
+      targetPort: 9093
+  clusterIP: 10.96.1.127
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edis-monitoring
+  labels:
+    account: monitoring
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edis-alertmanager
+  labels:
+    app: edis-alertmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edis-alertmanager
+  template:
+    metadata:
+      labels:
+        app: edis-alertmanager
+    spec:
+      serviceAccountName: edis-monitoring
+      volumes:
+      - name: alertmanager-dir
+        hostPath:
+          # directory location on host
+          path: ./alert-manager
+          # this field is optional
+          type: Directory
+      containers:
+      - env:
+        - name: --config.file
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: alert_manager_yml_location
+        name: alertmanager
+        image: prom/alertmanager
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9093
+        volumeMounts:
+        - name: alertmanager-dir
+          mountPath: /etc/alertmanager/

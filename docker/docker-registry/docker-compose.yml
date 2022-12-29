@@ -1,0 +1,43 @@
+version: '3' 
+
+services: 
+  registry: 
+    restart: always 
+    image: registry:2 
+    ports: 
+    - 8443:8443 
+    environment: 
+      REGISTRY_AUTH: htpasswd 
+      REGISTRY_AUTH_HTPASSWD_REALM: Registry 
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/registry.password 
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data 
+      REGISTRY_HTTP_ADDR: 0.0.0.0:8443 
+      REGISTRY_HTTP_TLS_CERTIFICATE: /certs/edisserver.crt 
+      REGISTRY_HTTP_TLS_KEY: /certs/edisserver.key 
+    volumes: 
+      - ./certs:/certs 
+      - ./auth:/auth 
+      - ./data:/data 
+      - ./registry-config/credentials.yml:/etc/docker/registry/config.yml 
+    networks: 
+      - registry-ui-net 
+  ui: 
+    restart: always 
+    image: joxit/docker-registry-ui:latest 
+    ports: 
+      - 80:80 
+      - 443:443 
+    environment: 
+      - SINGLE_REGISTRY=true 
+      - REGISTRY_TITLE=EDIS Private Docker Registry 
+      - NGINX_PROXY_PASS_URL=https://registry:8443 
+      - DELETE_IMAGES=true 
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf 
+      - ./certs/edisserver.crt:/etc/nginx/certs/edisserver.crt 
+      - ./certs/edisserver.key:/etc/nginx/certs/edisserver.key 
+    depends_on: 
+      - registry 
+    networks: 
+      - registry-ui-net 
+networks: 
+  registry-ui-net: 

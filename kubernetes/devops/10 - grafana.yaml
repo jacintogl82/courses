@@ -1,0 +1,81 @@
+##################################################################################################
+# grafana service
+##################################################################################################
+apiVersion: v1  
+kind: Service  
+metadata:  
+  name: edis-grafana  
+  labels:  
+    app: edis-grafana
+    service: grafana 
+spec:  
+  type: LoadBalancer
+  selector:  
+    app: edis-grafana
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+  clusterIP: 10.96.1.130
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edis-monitoring
+  labels:
+    account: monitoring
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edis-grafana
+  labels:
+    app: edis-grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edis-grafana
+  template:
+    metadata:
+      labels:
+        app: edis-grafana
+    spec:
+      serviceAccountName: edis-monitoring
+      volumes:
+      - name: grafana-dir
+        hostPath:
+          # directory location on host
+          path: /home/jacinto/grafana-data
+          # this field is optional
+          type: DirectoryOrCreate
+      containers:
+      - env:
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: grafana_security_admin_password
+        - name: GF_USERS_ALLOW_SIGN_UP
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: grafana_users_allow_sign_up
+        - name: GF_LOG_MODE
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: grafana_log_mode
+        - name: GF_SERVER_DOMAIN
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: grafana_security_admin_password
+        name: grafana
+        image: grafana/grafana-oss
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        volumeMounts:
+        - name: grafana-dir
+          mountPath: /grafana

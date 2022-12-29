@@ -1,0 +1,279 @@
+##################################################################################################
+# Postgres service
+##################################################################################################
+apiVersion: v1  
+kind: Service  
+metadata:  
+  name: edis-postgres  
+  labels:  
+    app: edis-db
+    service: postgres 
+spec:  
+  type: LoadBalancer
+  selector:  
+    app: edis-db
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+  clusterIP: 10.96.1.120  
+status:
+  loadBalancer:
+    ingress:
+    - ip: 192.0.2.127  
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edis-database
+  labels:
+    account: database
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edis-db
+  labels:
+    app: edis-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edis-db
+  template:
+    metadata:
+      labels:
+        app: edis-db
+    spec:
+      serviceAccountName: edis-database
+      volumes:
+      - name: pgdata-dir
+        hostPath:
+          # directory location on host
+          path: /home/administrator/pgdata-data
+          # this field is optional
+          type: DirectoryOrCreate
+      containers:
+      - env:
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: postgres_user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: postgres_password
+        name: postgresdb
+        image: postgres
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: pgdata-dir
+          mountPath: /var/lib/postgresql/data
+---
+##################################################################################################
+# Elasticsearch service
+##################################################################################################
+apiVersion: v1  
+kind: Service  
+metadata:  
+  name: edis-elasticsearch  
+  labels:  
+    app: edis-logs
+    service: elasticsearch 
+spec:  
+  type: LoadBalancer
+  selector:  
+    app: edis-logs
+  ports:
+    - name: elasticport
+      protocol: TCP
+      port: 9200
+      targetPort: 9200
+    - name: kibanaport
+      protocol: TCP
+      port: 5601
+      targetPort: 5601
+  clusterIP: 10.96.1.121  
+status:
+  loadBalancer:
+    ingress:
+    - ip: 192.0.2.127  
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edis-logs-system
+  labels:
+    account: logs-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edis-logs
+  labels:
+    app: edis-logs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edis-logs
+  template:
+    metadata:
+      labels:
+        app: edis-logs
+    spec:
+      serviceAccountName: edis-logs-system
+      volumes:
+      - name: kibana-config
+        hostPath:
+          path: /home/administrator/kibana-config/
+          type: DirectoryOrCreate
+      containers:
+      - env:
+        - name: discovery.type
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: elastic_discovery_type
+        - name: ELASTIC_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: elastic_password
+        - name: xpack.security.enabled
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: elastic_security
+        name: elasticsearch
+        image: elasticsearch:7.6.2
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9200
+      - env:
+        - name: ELASTICSEARCH_HOSTS
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: elastic_host
+        - name: ELASTICSEARCH_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: elastic_username
+        - name: ELASTICSEARCH_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: elastic_password
+        name: kibana
+        image: kibana:7.6.2
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5601
+---
+##################################################################################################
+# Kafka service
+##################################################################################################
+apiVersion: v1  
+kind: Service  
+metadata:  
+  name: edis-kafka  
+  labels:  
+    app: edis-events
+    service: kafka 
+spec:  
+  type: LoadBalancer
+  selector:  
+    app: edis-events
+  ports:
+    - name: kafkaport
+      protocol: TCP
+      port: 29092
+      targetPort: 29092
+    - name: zookeeperport
+      protocol: TCP
+      port: 32181
+      targetPort: 32181
+  clusterIP: 10.96.1.122  
+status:
+  loadBalancer:
+    ingress:
+    - ip: 192.0.2.127  
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edis-events-system
+  labels:
+    account: events-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edis-events
+  labels:
+    app: edis-events
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edis-events
+  template:
+    metadata:
+      labels:
+        app: edis-events
+    spec:
+      serviceAccountName: edis-events-system
+      containers:
+      - env:
+        - name: ZOOKEEPER_CLIENT_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: zookeeper_client_port
+        name: zookeeper
+        image: confluentinc/cp-zookeeper:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 32181
+      - env:
+        - name: KAFKA_BROKER_ID
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: kafka_broker_id
+        - name: KAFKA_ZOOKEEPER_CONNECT
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: kafka_zookeeper_connect
+        - name: KAFKA_ADVERTISED_LISTENERS
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: kafka_advertised_listeners
+        - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: kafka_listener_protocol_map
+        - name: KAFKA_INTER_BROKER_LISTENER_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: kafka_inter_broker_listener_name
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+          valueFrom:
+            configMapKeyRef:
+              name: kb-edis-config
+              key: kafka_offsets_topic_replication_factor
+        name: kafka
+        image: confluentinc/cp-kafka:7.2.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 29092
