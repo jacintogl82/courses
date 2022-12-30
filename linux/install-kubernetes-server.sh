@@ -34,6 +34,7 @@ curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-
 sudo install minikube-linux-amd64 /usr/local/bin/minikube
 minikube start
 minikube docker-env && eval $(minikube -p minikube docker-env)
+minikube tunnel -c --bind-address='0.0.0.0' &
 minikube dashboard
 minikube addons enable ingress
 minikube addons enable istio
