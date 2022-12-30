@@ -4,14 +4,14 @@
 apiVersion: v1  
 kind: Service  
 metadata:  
-  name: edis-node-exporter  
+  name: server-node-exporter  
   labels:  
-    app: edis-node-exporter
+    app: server-node-exporter
     service: node-exporter 
 spec:  
   type: LoadBalancer
   selector:  
-    app: edis-node-exporter
+    app: server-node-exporter
   ports:
     - protocol: TCP
       port: 9100
@@ -21,27 +21,27 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: edis-monitoring
+  name: server-monitoring
   labels:
     account: monitoring
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: edis-node-exporter
+  name: server-node-exporter
   labels:
-    app: edis-node-exporter
+    app: server-node-exporter
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: edis-node-exporter
+      app: server-node-exporter
   template:
     metadata:
       labels:
-        app: edis-node-exporter
+        app: server-node-exporter
     spec:
-      serviceAccountName: edis-monitoring
+      serviceAccountName: server-monitoring
       containers:
       - name: node-exporter
         image: prom/node-exporter

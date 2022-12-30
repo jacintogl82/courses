@@ -14,14 +14,14 @@ volumeBindingMode: WaitForFirstConsumer
 apiVersion: v1  
 kind: Service  
 metadata:  
-  name: edis-postgres  
+  name: server-postgres  
   labels:  
-    app: edis-db
+    app: server-db
     service: postgres 
 spec:  
   type: LoadBalancer
   selector:  
-    app: edis-db
+    app: server-db
   ports:
     - protocol: TCP
       port: 5432
@@ -31,38 +31,38 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: edis-database
+  name: server-database
   labels:
     account: database
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: edis-db
+  name: server-db
   labels:
-    app: edis-db
+    app: server-db
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: edis-db
+      app: server-db
   template:
     metadata:
       labels:
-        app: edis-db
+        app: server-db
     spec:
-      serviceAccountName: edis-database
+      serviceAccountName: server-database
       containers:
       - env:
         - name: POSTGRES_USER
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: postgres_user
         - name: POSTGRES_PASSWORD
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: postgres_password
         name: postgresdb
         image: postgres

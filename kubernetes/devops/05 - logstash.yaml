@@ -33,7 +33,7 @@ spec:
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: edis-logs-logstash-claim
+  name: server-logs-logstash-claim
 spec:
   accessModes:
   - ReadWriteOnce
@@ -48,14 +48,14 @@ spec:
 apiVersion: v1  
 kind: Service  
 metadata:  
-  name: edis-logstash  
+  name: server-logstash  
   labels:  
-    app: edis-logs-logstash
+    app: server-logs-logstash
     service: logstash 
 spec:  
   type: LoadBalancer
   selector:  
-    app: edis-logs-logstash
+    app: server-logs-logstash
   ports:
     - name: logstashport
       protocol: TCP
@@ -74,52 +74,52 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: edis-logs-logstash-system
+  name: server-logs-logstash-system
   labels:
     account: logs-system
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: edis-logs-logstash
+  name: server-logs-logstash
   labels:
-    app: edis-logs-logstash
+    app: server-logs-logstash
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: edis-logs-logstash
+      app: server-logs-logstash
   template:
     metadata:
       labels:
-        app: edis-logs-logstash
+        app: server-logs-logstash
     spec:
-      serviceAccountName: edis-logs-logstash-system
+      serviceAccountName: server-logs-logstash-system
       volumes:
       - name: logstash-persistent-storage
         persistentVolumeClaim:
-          claimName: edis-logs-logstash-claim
+          claimName: server-logs-logstash-claim
       containers:
       - env:
         - name: xpack.monitoring.enabled
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: logstash_monitoring_enabled
         - name: xpack.monitoring.elasticsearch.hosts
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: logstash_monitoring_elasticsearch_hosts
         - name: xpack.monitoring.elasticsearch.username
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: elastic_username
         - name: xpack.monitoring.elasticsearch.password
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: elastic_password      
         name: logstash
         image: docker.elastic.co/logstash/logstash:7.8.1        

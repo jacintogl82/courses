@@ -4,14 +4,14 @@
 apiVersion: v1  
 kind: Service  
 metadata:  
-  name: edis-kibana  
+  name: server-kibana  
   labels:  
-    app: edis-logs-kibana
+    app: server-logs-kibana
     service: kibana 
 spec:  
   type: LoadBalancer
   selector:  
-    app: edis-logs-kibana
+    app: server-logs-kibana
   ports:
     - protocol: TCP
       port: 5601
@@ -21,27 +21,27 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: edis-logs-kibana-system
+  name: server-logs-kibana-system
   labels:
     account: logs-system
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: edis-logs-kibana
+  name: server-logs-kibana
   labels:
-    app: edis-logs-kibana
+    app: server-logs-kibana
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: edis-logs-kibana
+      app: server-logs-kibana
   template:
     metadata:
       labels:
-        app: edis-logs-kibana
+        app: server-logs-kibana
     spec:
-      serviceAccountName: edis-logs-kibana-system
+      serviceAccountName: server-logs-kibana-system
       volumes:
       - name: kibana-config
         hostPath:
@@ -56,27 +56,27 @@ spec:
         - name: ELASTICSEARCH_HOSTS
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: elastic_hosts
         - name: KIBANA_ELASTICSEARCH_HOSTS
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: elastic_hosts
         - name: KIBANA_ELASTICSEARCH_PORT
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: elastic_port
         - name: ELASTICSEARCH_USERNAME
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: elastic_username
         - name: ELASTICSEARCH_PASSWORD
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: elastic_password
         name: kibana
         image: docker.elastic.co/kibana/kibana:7.8.1
@@ -86,4 +86,4 @@ spec:
       initContainers:
       - name: init-elasticsearch
         image: busybox:1.28
-        command: ['sh', '-c', "until nslookup edis-elasticsearch.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo esperando a elasticsearch; sleep 2; done"]
+        command: ['sh', '-c', "until nslookup server-elasticsearch.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo esperando a elasticsearch; sleep 2; done"]

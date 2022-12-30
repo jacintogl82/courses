@@ -4,14 +4,14 @@
 apiVersion: v1  
 kind: Service  
 metadata:  
-  name: edis-alertmanager  
+  name: server-alertmanager  
   labels:  
-    app: edis-alertmanager
+    app: server-alertmanager
     service: alertmanager 
 spec:  
   type: LoadBalancer
   selector:  
-    app: edis-alertmanager
+    app: server-alertmanager
   ports:
     - protocol: TCP
       port: 9093
@@ -21,27 +21,27 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: edis-monitoring
+  name: server-monitoring
   labels:
     account: monitoring
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: edis-alertmanager
+  name: server-alertmanager
   labels:
-    app: edis-alertmanager
+    app: server-alertmanager
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: edis-alertmanager
+      app: server-alertmanager
   template:
     metadata:
       labels:
-        app: edis-alertmanager
+        app: server-alertmanager
     spec:
-      serviceAccountName: edis-monitoring
+      serviceAccountName: server-monitoring
       volumes:
       - name: alertmanager-dir
         hostPath:
@@ -54,7 +54,7 @@ spec:
         - name: --config.file
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: alert_manager_yml_location
         name: alertmanager
         image: prom/alertmanager

@@ -4,14 +4,14 @@
 apiVersion: v1  
 kind: Service  
 metadata:  
-  name: edis-elasticsearch  
+  name: server-elasticsearch  
   labels:  
-    app: edis-logs-elastic
+    app: server-logs-elastic
     service: elasticsearch 
 spec:  
   type: LoadBalancer
   selector:  
-    app: edis-logs-elastic
+    app: server-logs-elastic
   ports:
     - name: elasticport
       protocol: TCP
@@ -26,27 +26,27 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: edis-logs-elastic-system
+  name: server-logs-elastic-system
   labels:
     account: logs-system
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: edis-logs-elastic
+  name: server-logs-elastic
   labels:
-    app: edis-logs-elastic
+    app: server-logs-elastic
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: edis-logs-elastic
+      app: server-logs-elastic
   template:
     metadata:
       labels:
-        app: edis-logs-elastic
+        app: server-logs-elastic
     spec:
-      serviceAccountName: edis-logs-elastic-system
+      serviceAccountName: server-logs-elastic-system
       volumes:
       - name: elastic-logs
         hostPath:
@@ -57,17 +57,17 @@ spec:
         - name: discovery.type
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: elastic_discovery_type
         - name: ELASTIC_PASSWORD
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: elastic_password
         - name: xpack.security.enabled
           valueFrom:
             configMapKeyRef:
-              name: kb-edis-config
+              name: kb-server-config
               key: elastic_security
         name: elasticsearch
         image: docker.elastic.co/elasticsearch/elasticsearch:7.8.1        
