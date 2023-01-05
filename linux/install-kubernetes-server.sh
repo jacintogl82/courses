@@ -32,8 +32,9 @@ sudo usermod -aG docker $USER && newgrp docker
 # Install Minikube
 curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
 sudo install minikube-linux-amd64 /usr/local/bin/minikube
-minikube start
+minikube start --apiserver-ips=192.168.1.193
 minikube docker-env && eval $(minikube -p minikube docker-env)
+minikube kubectl proxy -- --address='0.0.0.0' &
 minikube tunnel -c --bind-address='0.0.0.0' &
 minikube dashboard
 minikube addons enable ingress
@@ -65,3 +66,12 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
 source ~/.bashrc
 nvm install v18.12.1
+
+# Install Nginx
+sudo apt install -y nginx
+mkdir /etc/nginx/conf.d/ && mkdir /etc/nginx/conf.d/certs/
+cp ./nginx/nginx.conf /etc/nginx/nginx.conf
+cp ./nginx/conf.d/minikube.conf /etc/nginx/conf.d/minikube.conf
+cp ~/.minikube/profiles/minikube/client.crt /etc/nginx/conf.d/certs/minikube-client.crt
+cp ~/.minikube/profiles/minikube/client.key /etc/nginx/conf.d/certs/minikube-client.key
+sudo systemctl restart nginx
