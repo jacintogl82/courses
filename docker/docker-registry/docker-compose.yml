@@ -25,8 +25,8 @@ services:
     restart: always 
     image: joxit/docker-registry-ui:latest 
     ports: 
-      - 80:80 
-      - 443:443 
+      - 80:8080
+      - 443:8444
     environment: 
       - SINGLE_REGISTRY=true 
       - REGISTRY_TITLE=EDIS Private Docker Registry 
